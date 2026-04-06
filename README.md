@@ -66,14 +66,19 @@ A production-grade TypeScript server with MongoDB using a class-based three-laye
 
 ### Chat
 
-- `POST /api/chats/:roomId/messages` - Send a message in a room chat (requires authentication)
-- `GET /api/chats/:roomId/messages` - Read messages from a room chat (requires authentication)
+- `POST /api/chats` - Create a new chat (requires authentication)
+- `GET /api/chats` - Get all chats for the authenticated user
+- `GET /api/chats/:id` - Get a specific chat by ID (requires authentication, member only)
+- `POST /api/chats/:id/join` - Join a chat by ID (requires authentication)
+- `POST /api/chats/:id/leave` - Leave a chat by ID (requires authentication, member only)
+- `POST /api/chats/:roomId/messages` - Send a message in a chat (requires authentication, member only)
+- `GET /api/chats/:roomId/messages` - Read messages from a chat (requires authentication, member only)
 
 WebSocket events:
 
-- `joinRoom` - Join a room by roomId
-- `leaveRoom` - Leave a room by roomId
-- `chatMessage` - Send a room message with payload `{ roomId, text }`
+- `joinRoom` - Join a chat room by chatId (checks membership)
+- `leaveRoom` - Leave a chat room by chatId
+- `chatMessage` - Send a room message with payload `{ chatId, text }`
 - `message` - Receive room messages in real time
 
 ## Development

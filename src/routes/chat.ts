@@ -7,6 +7,31 @@ import { ChatSchema } from "../validators/ChatValidators";
 const router = Router();
 
 router.post(
+    "/",
+    AuthMiddleware.authenticate,
+    ValidationMiddleware.validate(ChatSchema, "create"),
+    ChatController.createChat,
+);
+router.post(
+    "/:id/join",
+    AuthMiddleware.authenticate,
+    ValidationMiddleware.validate(ChatSchema, "join"),
+    ChatController.joinChat,
+);
+router.post(
+    "/:id/leave",
+    AuthMiddleware.authenticate,
+    ValidationMiddleware.validate(ChatSchema, "leave"),
+    ChatController.leaveChat,
+);
+router.get("/", AuthMiddleware.authenticate, ChatController.getChats);
+router.get(
+    "/:id",
+    AuthMiddleware.authenticate,
+    ValidationMiddleware.validate(ChatSchema, "getOne"),
+    ChatController.getChatById,
+);
+router.post(
     "/:roomId/messages",
     AuthMiddleware.authenticate,
     ValidationMiddleware.validate(ChatSchema, "sendMessage"),
