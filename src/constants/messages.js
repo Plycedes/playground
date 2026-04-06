@@ -1,0 +1,19 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SUCCESS_MESSAGES = exports.ERROR_MESSAGES = void 0;
+exports.ERROR_MESSAGES = {
+    USER_NOT_FOUND: 'User not found',
+    INVALID_CREDENTIALS: 'Invalid credentials',
+    USER_ALREADY_EXISTS: 'User already exists',
+    UNAUTHORIZED: 'Unauthorized access',
+    INVALID_TOKEN: 'Invalid token',
+    TOKEN_EXPIRED: 'Token expired',
+    INTERNAL_SERVER_ERROR: 'Internal server error',
+    VALIDATION_ERROR: 'Validation error',
+};
+exports.SUCCESS_MESSAGES = {
+    USER_CREATED: 'User created successfully',
+    LOGIN_SUCCESSFUL: 'Login successful',
+    LOGOUT_SUCCESSFUL: 'Logout successful',
+};
+//# sourceMappingURL=messages.js.map
