@@ -1,4 +1,4 @@
-import { createInterface, Interface } from "readline";
+import { createInterface, Interface, clearLine, cursorTo } from "readline";
 import io, { Socket } from "socket.io-client";
 
 interface LoginResponse {
@@ -19,7 +19,7 @@ interface Chat {
 }
 
 interface Message {
-    id: string;
+    _id: string;
     chatId: string;
     senderId: string;
     text: string;
@@ -113,7 +113,8 @@ async function selectChat(chats: Chat[]): Promise<Chat> {
         return selectChat(chats);
     }
 
-    return chats[index];
+    const selectedChat = chats[index];
+    return selectedChat;
 }
 
 function startChatClient(token: string, chat: Chat): void {
@@ -123,40 +124,56 @@ function startChatClient(token: string, chat: Chat): void {
         },
     });
 
+    let isConnected = false;
+    let isWaitingForInput = false;
+
+    const showPrompt = (): void => {
+        if (isConnected && !isWaitingForInput) {
+            isWaitingForInput = true;
+            rl.question("> ", (input: string) => {
+                isWaitingForInput = false;
+                if (input.toLowerCase() === "exit") {
+                    socket.disconnect();
+                    return;
+                }
+                if (input.trim()) {
+                    socket.emit("chatMessage", { chatId: chat._id, text: input });
+                }
+                showPrompt();
+            });
+        }
+    };
+
     socket.on("connect", () => {
         console.log("Connected to server");
         socket.emit("joinRoom", chat._id);
     });
 
     socket.on("roomJoined", (data: { chatId: string }) => {
+        isConnected = true;
         console.log(`Joined chat: ${data.chatId}`);
         console.log('Type your message and press Enter. Type "exit" to quit.');
-        promptMessage();
+        showPrompt();
     });
 
     socket.on("message", (message: Message) => {
+        // Clear the current line and show the message
+        if (isWaitingForInput) {
+            clearLine(process.stdout, 0);
+            cursorTo(process.stdout, 0);
+        }
         console.log(`\n[${message.senderId}]: ${message.text}`);
-        promptMessage();
+        showPrompt();
     });
 
-    socket.on("error", (error: { message: string }) => {
-        console.error("Socket error:", error.message);
+    socket.on("error", (error: any) => {
+        console.error("Socket error:", error.message || error);
     });
 
     socket.on("disconnect", () => {
         console.log("Disconnected from server");
         rl.close();
     });
-
-    function promptMessage(): void {
-        rl.question("> ", (input: string) => {
-            if (input.toLowerCase() === "exit") {
-                socket.disconnect();
-                return;
-            }
-            socket.emit("chatMessage", { chatId: chat._id, text: input });
-        });
-    }
 }
 
 async function main(): Promise<void> {

@@ -6,7 +6,7 @@ export class ChatService {
     static async createChat(creatorId: string, name: string): Promise<any> {
         const chat = await ChatRepository.create({ name, creatorId, members: [creatorId] });
         return {
-            id: chat._id,
+            _id: chat._id,
             name: chat.name,
             creatorId: chat.creatorId,
             members: chat.members,
@@ -27,7 +27,7 @@ export class ChatService {
             throw new Error("Chat not found");
         }
         return {
-            id: updatedChat._id,
+            _id: updatedChat._id,
             name: updatedChat.name,
             creatorId: updatedChat.creatorId,
             members: updatedChat.members,
@@ -48,7 +48,7 @@ export class ChatService {
             throw new Error("Chat not found");
         }
         return {
-            id: updatedChat._id,
+            _id: updatedChat._id,
             name: updatedChat.name,
             creatorId: updatedChat.creatorId,
             members: updatedChat.members,
@@ -59,7 +59,7 @@ export class ChatService {
     static async getChats(userId: string): Promise<any[]> {
         const chats = await ChatRepository.findByMember(userId);
         return chats.map((chat) => ({
-            id: chat._id,
+            _id: chat._id,
             name: chat.name,
             creatorId: chat.creatorId,
             members: chat.members,
@@ -77,7 +77,7 @@ export class ChatService {
             throw new Error("Not a member");
         }
         return {
-            id: chat._id,
+            _id: chat._id,
             name: chat.name,
             creatorId: chat.creatorId,
             members: chat.members,
@@ -96,7 +96,7 @@ export class ChatService {
         }
         const message = await MessageRepository.create({ roomId: chatId, senderId, text });
         return {
-            id: message._id,
+            _id: message._id,
             chatId: message.roomId,
             senderId: message.senderId,
             text: message.text,
@@ -115,7 +115,7 @@ export class ChatService {
         }
         const messages = await MessageRepository.findByRoomId(chatId);
         return messages.map((message) => ({
-            id: message._id,
+            _id: message._id,
             chatId: message.roomId,
             senderId: message.senderId,
             text: message.text,
