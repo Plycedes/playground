@@ -1,5 +1,6 @@
 import { Socket } from "socket.io";
 import { ChatService } from "../services/ChatService";
+import { emitToChatRoom } from "./ioRegistry";
 
 export class ChatSocket {
     static async handleConnection(socket: Socket): Promise<void> {
@@ -43,19 +44,10 @@ export class ChatSocket {
                 }
 
                 const message = await ChatService.sendMessage(payload.chatId, userId, payload.text);
-                socket.to(payload.chatId).emit("message", message);
-                socket.emit("message", message);
+                emitToChatRoom(payload.chatId, "message", message);
             } catch (error) {
                 socket.emit("error", { message: "Failed to send message" });
             }
-        });
-
-        socket.on("disconnect", (reason) => {
-            socket.rooms.forEach((room) => {
-                if (room !== socket.id) {
-                    socket.leave(room);
-                }
-            });
         });
     }
 }

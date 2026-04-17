@@ -1,10 +1,19 @@
 services:
+    redis:
+        image: redis:7-alpine
+        restart: unless-stopped
+        command: ["redis-server", "--appendonly", "yes"]
+        volumes:
+            - redis-data:/data
+
     api:
         build:
             context: .
             dockerfile: Dockerfile
         restart: unless-stopped
         init: true
+        depends_on:
+            - redis
         ports:
             - "${PORT:-3000}:3000"
         environment:
@@ -14,3 +23,7 @@ services:
             JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env or the environment}
             JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
             BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+            REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+
+volumes:
+    redis-data:
