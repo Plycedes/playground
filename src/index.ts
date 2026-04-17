@@ -5,7 +5,7 @@ import { DatabaseConfig } from "./config/database";
 import { SocketServer } from "./socket";
 import { logger } from "./utils/logger";
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
     try {
@@ -14,8 +14,13 @@ async function startServer() {
         const server = createServer(app);
         SocketServer.initialize(server);
 
+        server.on("error", (err) => {
+            logger.error("HTTP server error:", err);
+            process.exit(1);
+        });
+
         server.listen(PORT, () => {
-            logger.info(`Server is running on port ${PORT}`);
+            console.log(`Server is running on ${PORT}`);
         });
     } catch (error) {
         logger.error("Failed to start server:", error);
