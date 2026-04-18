@@ -5,6 +5,12 @@ services:
         command: ["redis-server", "--appendonly", "yes"]
         volumes:
             - redis-data:/data
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 3s
+            retries: 5
+            start_period: 5s
 
     api:
         build:
@@ -13,7 +19,20 @@ services:
         restart: unless-stopped
         init: true
         depends_on:
-            - redis
+            redis:
+                condition: service_healthy
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "node",
+                    "-e",
+                    "require('http').get('http://127.0.0.1:3000/health/live',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+                ]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 40s
         ports:
             - "${PORT:-3000}:3000"
         environment:

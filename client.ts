@@ -38,8 +38,8 @@ const rl: Interface = createInterface({
     output: process.stdout,
 });
 
-const BASE_URL = "http://localhost:5000/api/v1";
-const SOCKET = "http://localhost:5000";
+const BASE_URL = "http://13.233.161.77:80/api/v1";
+const SOCKET = "http://13.233.161.77:80";
 
 function ask(question: string): Promise<string> {
     return new Promise((resolve) => {
