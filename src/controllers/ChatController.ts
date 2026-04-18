@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ChatService } from "../services/ChatService";
+import { emitToChatRoom } from "../socket/ioRegistry";
 import { ResponseUtil } from "../utils/response";
 import { HTTP_STATUS } from "../constants/statusCodes";
 
@@ -44,6 +45,7 @@ export class ChatController {
         const senderId = (req as any).user.id;
 
         const message = await ChatService.sendMessage(roomId, senderId, text);
+        emitToChatRoom(roomId, "message", message);
         ResponseUtil.success(res, message, "Message sent successfully", HTTP_STATUS.CREATED);
     }
 

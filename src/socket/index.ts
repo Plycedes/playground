@@ -1,12 +1,15 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
 import jwt from "jsonwebtoken";
 import { JWT_CONFIG } from "../config/auth";
+import type { RedisClusterClients } from "../config/redis";
 import { ChatSocket } from "./ChatSocket";
+import { setSocketIo } from "./ioRegistry";
 import { logger } from "../utils/logger";
 
 export class SocketServer {
-    static initialize(server: HttpServer): Server {
+    static initialize(server: HttpServer, redis: RedisClusterClients | null): Server {
         const io = new Server(server, {
             cors: {
                 origin: process.env.FRONTEND_URL || "*",
@@ -18,6 +21,11 @@ export class SocketServer {
             maxHttpBufferSize: 1e6,
             transports: ["websocket", "polling"],
         });
+
+        if (redis) {
+            io.adapter(createAdapter(redis.pubClient, redis.subClient));
+            logger.info("Socket.IO Redis adapter enabled");
+        }
 
         io.use((socket: Socket, next) => {
             const token =
@@ -41,6 +49,7 @@ export class SocketServer {
             ChatSocket.handleConnection(socket);
         });
 
+        setSocketIo(io);
         return io;
     }
 }

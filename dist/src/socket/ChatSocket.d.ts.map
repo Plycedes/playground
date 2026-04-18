@@ -1,1 +1,0 @@
-{"version":3,"file":"ChatSocket.d.ts","sourceRoot":"","sources":["../../../src/socket/ChatSocket.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,WAAW,CAAC;AAGnC,qBAAa,UAAU;WACN,gBAAgB,CAAC,MAAM,EAAE,MAAM,GAAG,OAAO,CAAC,IAAI,CAAC;CAwD/D"}

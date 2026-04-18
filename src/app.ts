@@ -1,44 +1,55 @@
-import express from "express";
+import express, { Application } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import RedisStore from "rate-limit-redis";
+import type { RedisClientType } from "redis";
 import router from "./routes";
 import { ErrorHandlerMiddleware } from "./middlewares/errorHandler";
-import { logger } from "./utils/logger";
 
-const app = express();
+export type BuildAppOptions = {
+    rateLimitClient?: RedisClientType;
+};
 
-app.set("trust proxy", 1);
+export async function buildApp(options: BuildAppOptions = {}): Promise<Application> {
+    const app = express();
 
-// Security middleware
-app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_URL || "*", credentials: true }));
+    app.set("trust proxy", 1);
 
-// Rate limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000, // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
+    app.use(helmet());
+    app.use(cors({ origin: process.env.FRONTEND_URL || "*", credentials: true }));
 
-// Body parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+    const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 1000,
+        standardHeaders: true,
+        legacyHeaders: false,
+        ...(options.rateLimitClient
+            ? {
+                  store: new RedisStore({
+                      prefix: "rl:",
+                      sendCommand: (...args: string[]) =>
+                          options.rateLimitClient!.sendCommand(args as never),
+                  }),
+              }
+            : {}),
+    });
+    app.use(limiter);
 
-// Routes
-app.use("/api/v1", router);
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
 
-// Health check
-app.get("/health", (req, res) => {
-    res.json({ status: "OK", timestamp: new Date().toISOString() });
-});
+    app.use("/api/v1", router);
 
-// Error handling
-app.use(ErrorHandlerMiddleware.handle);
+    app.get("/health", (req, res) => {
+        res.json({ status: "OK", timestamp: new Date().toISOString() });
+    });
 
-// 404 handler
-app.use("*", (req, res) => {
-    res.status(404).json({ message: "Route not found" });
-});
+    app.use(ErrorHandlerMiddleware.handle);
 
-export default app;
+    app.use("*", (req, res) => {
+        res.status(404).json({ message: "Route not found" });
+    });
+
+    return app;
+}
