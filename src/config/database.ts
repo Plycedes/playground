@@ -16,4 +16,9 @@ export class DatabaseConfig {
         await mongoose.disconnect();
         console.log("Disconnected from MongoDB");
     }
+
+    /** Mongoose `readyState === 1` means connected. */
+    static isReady(): boolean {
+        return mongoose.connection.readyState === 1;
+    }
 }

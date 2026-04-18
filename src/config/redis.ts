@@ -39,3 +39,21 @@ export async function connectRedisClusterClients(): Promise<RedisClusterClients 
     logger.info("Redis connected (Socket.IO adapter + rate limit store)");
     return { pubClient, subClient, rateLimitClient };
 }
+
+export async function disconnectRedisClusterClients(clients: RedisClusterClients | null): Promise<void> {
+    if (!clients) {
+        return;
+    }
+    await Promise.all([
+        clients.pubClient.quit(),
+        clients.subClient.quit(),
+        clients.rateLimitClient.quit(),
+    ]);
+}
+
+export async function pingRedis(clients: RedisClusterClients): Promise<void> {
+    const pong = await clients.rateLimitClient.ping();
+    if (pong !== "PONG") {
+        throw new Error("Redis PING did not return PONG");
+    }
+}
