@@ -1,0 +1,30 @@
+services:
+    api:
+        image: gridsupport/playground-api:latest
+        restart: unless-stopped
+        init: true
+
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "node",
+                    "-e",
+                    "require('http').get('http://127.0.0.1:3000/health/live',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+                ]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 40s
+
+        ports:
+            - "${HOST_PORT:-5000}:${PORT:-3000}"
+
+        environment:
+            NODE_ENV: ${NODE_ENV:-production}
+            PORT: ${PORT:-3000}
+            MONGODB_URI: ${MONGODB_URI:?Set MONGODB_URI}
+            JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+            JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+            BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+            REDIS_URL: ${REDIS_URL:?Set REDIS_URL}
