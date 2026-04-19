@@ -54,7 +54,13 @@ async function startServer() {
     try {
         await DatabaseConfig.connect();
 
-        redis = await connectRedisClusterClients();
+        try {
+            redis = await connectRedisClusterClients();
+        } catch (err) {
+            logger.error("Redis connection failed, continuing without it", err);
+            redis = null;
+        }
+
         const app = await buildApp({
             rateLimitClient: redis?.rateLimitClient,
             redis,
@@ -65,7 +71,6 @@ async function startServer() {
 
         server.on("error", (err) => {
             logger.error("HTTP server error:", err);
-            process.exit(1);
         });
 
         server.listen(PORT, () => {
@@ -75,13 +80,16 @@ async function startServer() {
         process.once("SIGTERM", () => void gracefulShutdown("SIGTERM"));
         process.once("SIGINT", () => void gracefulShutdown("SIGINT"));
     } catch (error) {
-        logger.error("Failed to start server:", error);
+        logger.error("Failed to start server, retrying...", error);
+
         await disconnectRedisClusterClients(redis);
         redis = null;
+
         if (DatabaseConfig.isReady()) {
             await DatabaseConfig.disconnect();
         }
-        process.exit(1);
+
+        setTimeout(startServer, 5000);
     }
 }
 
