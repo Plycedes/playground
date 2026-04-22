@@ -1,0 +1,80 @@
+name: Deploy to ASG
+
+on:
+    push:
+        branches: ["main"]
+
+# Required for OIDC
+permissions:
+    id-token: write
+    contents: read
+
+env:
+    IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME || 'gridsupport/playground-api' }}
+    AWS_REGION: ${{ vars.AWS_REGION || 'ap-south-1' }}
+
+jobs:
+    deploy:
+        name: Build → Push → Deploy
+        runs-on: ubuntu-latest
+        environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
+        # environment: ${{ github.ref_name == 'main' && 'production' || github.ref_name == 'staging' && 'staging' || 'dev' }}
+
+        steps:
+            # 1. Checkout
+            - name: Checkout repository
+              uses: actions/checkout@v3
+
+            # 2. Set IMAGE_TAG = commit SHA
+            - name: Set image tag
+              run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+
+            # 3. Login to Docker Hub
+            - name: Login to Docker Hub
+              run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+            # 4. Build Docker image
+            - name: Build image
+              run: docker build -t $IMAGE_NAME:${IMAGE_TAG} .
+
+            # 5. Push Docker image
+            - name: Push image
+              run: docker push $IMAGE_NAME:${IMAGE_TAG}
+
+            # 6. Configure AWS (OIDC)
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v2
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+                  aws-region: ${{ env.AWS_REGION }}
+
+            # 7. Inject IMAGE_TAG into user-data
+            - name: Prepare user-data
+              run: |
+                  sed "s/{{IMAGE_TAG}}/${IMAGE_TAG}/g" infra/user-data.sh > final-user-data.sh
+                  USERDATA=$(base64 -w 0 final-user-data.sh)
+                  echo "USERDATA=$USERDATA" >> $GITHUB_ENV
+
+            # 8. Create new Launch Template version
+            - name: Create launch template version
+              run: |
+                  aws ec2 create-launch-template-version \
+                    --launch-template-name ${{ secrets.LAUNCH_TEMPLATE_NAME }} \
+                    --source-version '$Latest' \
+                    --launch-template-data "{
+                      \"UserData\": \"${USERDATA}\"
+                    }"
+
+            # 9. Update ASG to use latest template
+            - name: Update Auto Scaling Group
+              run: |
+                  aws autoscaling update-auto-scaling-group \
+                    --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
+                    --launch-template LaunchTemplateName=${{ secrets.LAUNCH_TEMPLATE_NAME }},Version='$Latest'
+
+            # 10. Trigger rolling deployment
+            - name: Start instance refresh
+              run: |
+                  aws autoscaling start-instance-refresh \
+                    --auto-scaling-group-name ${{ secrets.AUTO_SCALING_GROUP_NAME }} \
+                    --preferences '{"MinHealthyPercentage": 50, "InstanceWarmup": 60}'
